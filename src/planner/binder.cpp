@@ -1,5 +1,7 @@
 #include "duckdb/planner/binder.hpp"
 
+#include "duckdb/common/errlog.h"
+
 #include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
 #include "duckdb/catalog/catalog_entry/view_catalog_entry.hpp"
 #include "duckdb/main/config.hpp"
@@ -101,6 +103,7 @@ BoundStatement Binder::Bind(SQLStatement &statement) {
 
 void Binder::AddCTEMap(CommonTableExpressionMap &cte_map) {
 	for (auto &cte_it : cte_map.map) {
+		DEBUG_PRINT("cte.name = %s, cte = %s", cte_it.first.c_str(), cte_it.second->query->ToString().c_str());
 		AddCTE(cte_it.first, *cte_it.second);
 	}
 }

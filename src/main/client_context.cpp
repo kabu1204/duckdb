@@ -3,6 +3,7 @@
 #include "duckdb/catalog/catalog_entry/scalar_function_catalog_entry.hpp"
 #include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
 #include "duckdb/catalog/catalog_search_path.hpp"
+#include "duckdb/common/errlog.h"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/http_state.hpp"
 #include "duckdb/common/preserved_error.hpp"
@@ -304,6 +305,7 @@ static bool IsExplainAnalyze(SQLStatement *statement) {
 	return explain.explain_type == ExplainType::EXPLAIN_ANALYZE;
 }
 
+// bind && plan && optimize
 shared_ptr<PreparedStatementData> ClientContext::CreatePreparedStatement(ClientContextLock &lock, const string &query,
                                                                          unique_ptr<SQLStatement> statement,
                                                                          vector<Value> *values) {
@@ -333,6 +335,10 @@ shared_ptr<PreparedStatementData> ClientContext::CreatePreparedStatement(ClientC
 	result->value_map = std::move(planner.value_map);
 	result->catalog_version = MetaTransaction::Get(*this).catalog_version;
 
+//	for (auto &name: planner.names) {
+//		DEBUG_PRINT("Planner.name = %s", name.c_str());
+//	}
+
 	if (!planner.properties.bound_all_parameters) {
 		return result;
 	}
@@ -361,6 +367,7 @@ shared_ptr<PreparedStatementData> ClientContext::CreatePreparedStatement(ClientC
 	D_ASSERT(!physical_plan->ToString().empty());
 #endif
 	result->plan = std::move(physical_plan);
+//	DEBUG_PRINT("physical_plan: %s", result->plan->ToString().c_str());
 	return result;
 }
 
@@ -368,6 +375,7 @@ double ClientContext::GetProgress() {
 	return query_progress.load();
 }
 
+// TODO
 unique_ptr<PendingQueryResult> ClientContext::PendingPreparedStatement(ClientContextLock &lock,
                                                                        shared_ptr<PreparedStatementData> statement_p,
                                                                        PendingQueryParameters parameters) {
@@ -701,6 +709,7 @@ unique_ptr<PendingQueryResult> ClientContext::PendingStatementOrPreparedStatemen
 	unique_ptr<PendingQueryResult> result;
 
 	try {
+		// start txn
 		BeginQueryInternal(lock, query);
 	} catch (FatalException &ex) {
 		// fatal exceptions invalidate the entire database
@@ -719,6 +728,7 @@ unique_ptr<PendingQueryResult> ClientContext::PendingStatementOrPreparedStatemen
 
 	bool invalidate_query = true;
 	try {
+		// bind && plan && optimize
 		if (statement) {
 			result = PendingStatementInternal(lock, query, std::move(statement), parameters);
 		} else {
@@ -790,6 +800,7 @@ unique_ptr<QueryResult> ClientContext::Query(unique_ptr<SQLStatement> statement,
 	return pending_query->Execute();
 }
 
+/* ENTRY POINT */
 unique_ptr<QueryResult> ClientContext::Query(const string &query, bool allow_stream_result) {
 	auto lock = LockContext();
 
@@ -886,6 +897,8 @@ unique_ptr<PendingQueryResult> ClientContext::PendingQueryInternal(ClientContext
                                                                    unique_ptr<SQLStatement> statement,
                                                                    PendingQueryParameters parameters, bool verify) {
 	auto query = statement->query;
+	query.c_str();
+	DEBUG_PRINT("%s", query.c_str());
 	shared_ptr<PreparedStatementData> prepared;
 	if (verify) {
 		return PendingStatementOrPreparedStatementInternal(lock, query, std::move(statement), prepared, parameters);

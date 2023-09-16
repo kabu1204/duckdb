@@ -53,6 +53,7 @@ PendingExecutionResult PendingQueryResult::ExecuteTaskInternal(ClientContextLock
 	return context->ExecuteTaskInternal(lock, *this);
 }
 
+// execute query
 unique_ptr<QueryResult> PendingQueryResult::ExecuteInternal(ClientContextLock &lock) {
 	CheckExecutableInternal(lock);
 	while (ExecuteTaskInternal(lock) == PendingExecutionResult::RESULT_NOT_READY) {

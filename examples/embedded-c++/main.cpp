@@ -11,9 +11,9 @@ int main() {
 	std::string value;
 	unique_ptr<MaterializedQueryResult> result;
 
-	result = con.Query("CREATE TABLE test_tb(s VARCHAR)");
+	con.Query("CREATE TABLE test_tb(testcol VARCHAR)");
 
-	for(int i=0; i< 1000; i++) {
+	for(int i=0; i< 5; i++) {
 		value.assign("value"+std::to_string(i));
 		con.Query("INSERT INTO test_tb VALUES ('" + value + "')");
 	}
